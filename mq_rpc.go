@@ -14,7 +14,8 @@ import (
 var msgChan chan []byte
 
 type MqRpc struct {
-	url string
+	MQType string
+	url    string
 }
 
 func (p *MqRpc) config(conf interface{}) error {
