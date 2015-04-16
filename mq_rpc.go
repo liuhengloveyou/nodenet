@@ -23,7 +23,7 @@ func (p *MqRpc) config(conf interface{}) error {
 	return nil
 }
 
-func (p *MqRpc) ListenAndServe() error {
+func (p *MqRpc) Run() error {
 	err := rpc.Register(p)
 	if err != nil {
 		return err

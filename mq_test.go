@@ -7,19 +7,19 @@ import (
 	"github.com/liuhengloveyou/cloudnet"
 )
 
-func TestServ(t *testing.T) {
+func TestRpcServ(t *testing.T) {
 	mq, err := cloudnet.NewMQ("rpc", ":1234")
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	err = mq.ListenAndServe()
+	err = mq.Run()
 
 	msg, e := mq.RecvMessage()
 	fmt.Println(msg, e)
 }
 
-func TestClient(t *testing.T) {
+func TestRpcClient(t *testing.T) {
 	mq, err := cloudnet.NewMQ("rpc", ":1234")
 	if err != nil {
 		fmt.Println(err)

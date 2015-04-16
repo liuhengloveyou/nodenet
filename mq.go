@@ -11,7 +11,7 @@ var mqs map[string]mqType = make(map[string]mqType)
 
 // 消息接口
 type MessageQueue interface {
-	ListenAndServe() error        // 启动服务监听
+	Run() error                   // 启动服务监听
 	RecvMessage() ([]byte, error) // 读一条消息
 	SendMessage([]byte) error     // 发送一条消息到给定节点
 }

@@ -4,19 +4,21 @@
 package cloudnet
 
 import (
+	"fmt"
 	"log"
+	"strings"
 )
 
 var components map[string]*Component = make(map[string]*Component)
 
 // 业务处理函数
-type ComponentHandler func(*Payload) (result interface{}, err error)
+type ComponentHandler func(interface{}) (result interface{}, err error)
 
 // 端点
 type EndPoint struct {
 	MQType string
-	Conf   interface{}
-	mq     *MessageQueue
+	conf   interface{}
+	mq     MessageQueue
 }
 
 // 组件
@@ -25,6 +27,26 @@ type Component struct {
 	in      EndPoint             // 接收消息端点
 	outs    map[string]*EndPoint // 所有下流端点
 	handler ComponentHandler     // 业务处理函数
+}
+
+func NewComponent(name, mqtype string, inconf interface{}) (*Component, error) {
+	sname, smqtype := strings.TrimSpace(name), strings.TrimSpace(mqtype)
+	if sname == "" {
+		return nil, fmt.Errorf("Component's name empty ERR")
+	}
+	if smqtype == "" {
+		return nil, fmt.Errorf("Component's MQ type ERR")
+	}
+
+	com := &Component{
+		Name:    sname,
+		in:      EndPoint{MQType: smqtype, conf: inconf, mq: nil},
+		outs:    make(map[string]*EndPoint),
+		handler: nil}
+
+	components[com.Name] = com
+
+	return com, nil
 }
 
 func GetComponentByName(name string) *Component {
@@ -44,22 +66,22 @@ func (p *Component) SetHandler(handler ComponentHandler) {
 }
 
 func (p *Component) Run() (err error) {
-	log.Infoln("Component Run...", p.Name)
+	log.Println("Component Run...", p.Name)
 
 	// 创建接收MQ
-	p.in.mq, err = NewMq(p.in.MQType, p.in.Conf)
+	p.in.mq, err = NewMQ(p.in.MQType, p.in.conf)
 	if err != nil {
 		return
 	}
 
 	// MQ 准备
-	err = p.in.mq.ListenAndServe()
+	err = p.in.mq.Run()
 	if err != nil {
 		return
 	}
 
 	// 开始监听
-	go p.recvMonitor()
+	p.recvMonitor()
 
 	return nil
 }
