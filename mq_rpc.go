@@ -1,9 +1,10 @@
 /*
-go rpc实现的mq
+go.rpc实现的mq
 */
-package cloudnet
+package nodenet
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -14,16 +15,14 @@ import (
 var msgChan chan []byte
 
 type MqRpc struct {
-	MQType string
-	url    string
+	Url string `json:"url"`
 }
 
-func (p *MqRpc) config(conf interface{}) error {
-	p.url = conf.(string)
-	return nil
+func (p *MqRpc) config(conf []byte) error {
+	return json.Unmarshal(conf, p)
 }
 
-func (p *MqRpc) Run() error {
+func (p *MqRpc) Ready() error {
 	err := rpc.Register(p)
 	if err != nil {
 		return err
@@ -31,7 +30,7 @@ func (p *MqRpc) Run() error {
 
 	rpc.HandleHTTP()
 
-	l, e := net.Listen("tcp", p.url)
+	l, e := net.Listen("tcp", p.Url)
 	if e != nil {
 		log.Fatal("Listen error:", e)
 	}
@@ -46,7 +45,7 @@ func (p *MqRpc) RecvMessage() (msg []byte, err error) {
 }
 
 func (p *MqRpc) SendMessage(msg []byte) error {
-	client, err := rpc.DialHTTP("tcp", "127.0.0.1:1234")
+	client, err := rpc.DialHTTP("tcp", p.Url)
 	if err != nil {
 		return fmt.Errorf("DialHttp ERR: %s", err.Error())
 	}
@@ -70,10 +69,9 @@ func init() {
 	RegisterMq("rpc", NewMqRpc)
 }
 
-func NewMqRpc(config interface{}) (MessageQueue, error) {
+func NewMqRpc(config []byte) (MessageQueue, error) {
 	tmq := &MqRpc{}
-	err := tmq.config(config)
-	if err != nil {
+	if err := tmq.config(config); err != nil {
 		return nil, err
 	}
 

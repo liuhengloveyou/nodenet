@@ -1,7 +1,7 @@
 /*
-消息接口
+消息接口. 提供消息收发的能力.
 */
-package cloudnet
+package nodenet
 
 import (
 	"fmt"
@@ -11,12 +11,12 @@ var mqs map[string]mqType = make(map[string]mqType)
 
 // 消息接口
 type MessageQueue interface {
-	Run() error                   // 启动服务监听
+	Ready() error                 // 准备工作
 	RecvMessage() ([]byte, error) // 读一条消息
-	SendMessage([]byte) error     // 发送一条消息到给定节点
+	SendMessage([]byte) error     // 发送一条消息到该节点
 }
 
-type mqType func(interface{}) (MessageQueue, error)
+type mqType func([]byte) (MessageQueue, error)
 
 func RegisterMq(name string, one mqType) {
 	if one == nil {
@@ -30,7 +30,7 @@ func RegisterMq(name string, one mqType) {
 	mqs[name] = one
 }
 
-func NewMQ(typeName string, config interface{}) (mq MessageQueue, err error) {
+func NewMQ(typeName string, config []byte) (mq MessageQueue, err error) {
 	if newFunc, ok := mqs[typeName]; ok {
 		return newFunc(config)
 	}

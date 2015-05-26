@@ -1,14 +1,14 @@
-package cloudnet_test
+package nodenet_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/liuhengloveyou/cloudnet"
+	"github.com/liuhengloveyou/nodenet"
 )
 
 func TestComponent(t *testing.T) {
-	com1, err := cloudnet.NewComponent("com1", "rpc", ":1234")
+	com1, err := nodenet.NewComponent("com1", "rpc", ":1234")
 	fmt.Println(com1, err)
 	com1.Run()
 }

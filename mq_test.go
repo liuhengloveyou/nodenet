@@ -1,26 +1,28 @@
-package cloudnet_test
+package nodenet_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/liuhengloveyou/cloudnet"
+	"github.com/liuhengloveyou/nodenet"
 )
 
+const config = `{"url":"127.0.0.1:12345"}`
+
 func TestRpcServ(t *testing.T) {
-	mq, err := cloudnet.NewMQ("rpc", ":1234")
+	mq, err := nodenet.NewMQ("rpc", []byte(config))
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	err = mq.Run()
+	err = mq.Ready()
 
 	msg, e := mq.RecvMessage()
-	fmt.Println(msg, e)
+	fmt.Println(string(msg), e)
 }
 
 func TestRpcClient(t *testing.T) {
-	mq, err := cloudnet.NewMQ("rpc", ":1234")
+	mq, err := nodenet.NewMQ("rpc", []byte(config))
 	if err != nil {
 		fmt.Println(err)
 	}

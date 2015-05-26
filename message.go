@@ -1,6 +1,7 @@
-package cloudnet
+package nodenet
 
 import (
+	"encoding/json"
 	"strings"
 
 	uuid "github.com/nu7hatch/gouuid"
@@ -30,6 +31,14 @@ func NewMessage(entrance string, payload interface{}) (msg *Message, err error) 
 		Payload:  payload}
 
 	return
+}
+
+func (p *Message) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, p)
+}
+
+func (p *Message) Marshal() ([]byte, error) {
+	return json.Marshal(p)
 }
 
 func (p *Message) SetGraph(graph []string) {

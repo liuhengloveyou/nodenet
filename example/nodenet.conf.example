@@ -1,0 +1,36 @@
+{
+"name":"com1",
+
+"components":[
+	{
+        "name": "com1",
+        "in": {
+	      "type": "rpc",
+	      "url": "tcp://127.0.0.1:5001"}
+	}, {
+        "name": "com2",
+        "in": {
+	      "type": "rpc",
+	      "url": "tcp://127.0.0.1:5002"}
+	}, {
+        "name": "com3",
+        "in": {
+	      "type": "rpc",
+	      "url": "tcp://127.0.0.1:5003"}
+	}],
+"groups":[
+	{
+	"name": "group1",
+	"dispense":"polling",
+	"members":["com1", "com2"]
+	},{
+	"name": "group2",
+	"dispense":"polling",
+	"members":["com3"]
+	}
+],
+"graphs":[
+	"user.info.get": ["group1", "group2", "group3"],
+	"demo": ["com1"]
+]
+}
