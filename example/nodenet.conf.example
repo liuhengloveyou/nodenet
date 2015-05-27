@@ -29,8 +29,8 @@
 	"members":["com3"]
 	}
 ],
-"graphs":[
+"graphs": {
 	"user.info.get": ["group1", "group2", "group3"],
 	"demo": ["com1"]
-]
+}
 }

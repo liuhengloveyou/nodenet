@@ -4,7 +4,6 @@ go.rpc实现的mq
 package nodenet
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -18,8 +17,9 @@ type MqRpc struct {
 	Url string `json:"url"`
 }
 
-func (p *MqRpc) config(conf []byte) error {
-	return json.Unmarshal(conf, p)
+func (p *MqRpc) config(conf interface{}) error {
+	p.Url = (conf.(map[string]interface{}))["url"].(string)
+	return nil
 }
 
 func (p *MqRpc) Ready() error {
@@ -69,7 +69,7 @@ func init() {
 	RegisterMq("rpc", NewMqRpc)
 }
 
-func NewMqRpc(config []byte) (MessageQueue, error) {
+func NewMqRpc(config interface{}) (MessageQueue, error) {
 	tmq := &MqRpc{}
 	if err := tmq.config(config); err != nil {
 		return nil, err

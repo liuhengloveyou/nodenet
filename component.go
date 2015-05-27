@@ -32,15 +32,15 @@ type Component struct {
 	handler ComponentHandler     // 业务处理函数
 }
 
-func NewComponent(name, inconf interface{}) (*Component, error) {
-	sname, smqtype := strings.TrimSpace(name), strings.TrimSpace(mqtype)
+func NewComponent(name string, inconf interface{}) (*Component, error) {
+	sname := strings.TrimSpace(name)
 	if sname == "" {
-		return nil, fmt.Errorf("Component's name empty ERR")
+		return nil, fmt.Errorf("Component's name empty")
 	}
 
 	com := &Component{
 		Name:    sname,
-		in:      EndPoint{MQType: smqtype, conf: inconf, mq: nil},
+		in:      EndPoint{MQType: "", Url: "", conf: inconf, mq: nil},
 		outs:    make(map[string]*EndPoint),
 		handler: nil}
 
@@ -75,7 +75,7 @@ func (p *Component) Run() (err error) {
 	}
 
 	// MQ 准备
-	err = p.in.mq.Run()
+	err = p.in.mq.Ready()
 	if err != nil {
 		return
 	}
@@ -90,19 +90,19 @@ func (p *Component) recvMonitor() {
 	for {
 		msg, err := p.in.mq.RecvMessage()
 		if err != nil {
-			log.Println(p.Name, "Error receiving message:", err.Error())
+			log.Errorln(p.Name, "Error receiving message:", err.Error())
 			continue
 		}
 		log.Infoln(p.Name, "Recv:", string(msg))
 
-		go p.dealMsg(comsg)
+		go p.dealMsg(msg)
 	}
 }
 
 func (p *Component) dealMsg(msg []byte) {
 	comsg := &Message{}
 	if e := comsg.Unmarshal(msg); e != nil {
-		log.Errorln(p.Name, "msg's format error:", err.Error(), string(msg))
+		log.Errorln(p.Name, "msg's format error:", e.Error(), string(msg))
 		return
 	}
 	log.Infoln(p.Name, "Recv MSG:", comsg)
@@ -113,23 +113,23 @@ func (p *Component) dealMsg(msg []byte) {
 		if p.handler != nil {
 			rst, e := p.handler(comsg.Payload)
 			if e != nil {
-				log.Errorln(p.Name, "worker error, send to entrance:", msg, err.Error())
+				log.Errorln(p.Name, "worker error, send to entrance:", msg, e.Error())
 				next = comsg.Entrance
 				comsg.Payload = nil
 			} else {
 				log.Infoln(p.Name, "Call handler ok")
-				comsg.Payload = ret
+				comsg.Payload = rst
 			}
 		}
 
 		next = comsg.PopGraph()
 		if next == "" {
 			log.Warningln("next is nil. send to entrance:", msg)
-			next = comsg.entrance
+			next = comsg.Entrance
 		}
 	} else if next == "" {
 		log.Warningln("next is empty. send to entrance:", msg)
-		next = comsg.entrance
+		next = comsg.Entrance
 	}
 
 	_, err := p.sendToNext(next, comsg)
@@ -139,20 +139,21 @@ func (p *Component) dealMsg(msg []byte) {
 }
 
 func (p *Component) sendToNext(name string, comsg *Message) (total int, err error) {
-	if url == "" {
-		return 0, fmt.Errorf("sendTo nil url")
-	}
-
-	if _, ok := p.outs[url]; ok == false {
-		mqtmp, err := NewMq(p.in.MQType, url)
-		if err != nil {
-			return 0, err
+	/*
+		if url == "" {
+			return 0, fmt.Errorf("sendTo nil url")
 		}
-		p.outs[url] = &EndPoint{Url: url, MQType: p.in.MQType, mq: mqtmp}
-	}
 
-	log.Infoln(p.Name, "sendToNext:", url, string(msg))
-	total, err = p.outs[url].mq.SendToNext(msg)
+		if _, ok := p.outs[url]; ok == false {
+			mqtmp, err := NewMq(p.in.MQType, url)
+			if err != nil {
+				return 0, err
+			}
+			p.outs[url] = &EndPoint{Url: url, MQType: p.in.MQType, mq: mqtmp}
+		}
 
+		log.Infoln(p.Name, "sendToNext:", url, string(msg))
+		total, err = p.outs[url].mq.SendToNext(msg)
+	*/
 	return
 }

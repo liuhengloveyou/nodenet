@@ -16,7 +16,7 @@ type MessageQueue interface {
 	SendMessage([]byte) error     // 发送一条消息到该节点
 }
 
-type mqType func([]byte) (MessageQueue, error)
+type mqType func(interface{}) (MessageQueue, error)
 
 func RegisterMq(name string, one mqType) {
 	if one == nil {
@@ -30,7 +30,7 @@ func RegisterMq(name string, one mqType) {
 	mqs[name] = one
 }
 
-func NewMQ(typeName string, config []byte) (mq MessageQueue, err error) {
+func NewMQ(typeName string, config interface{}) (mq MessageQueue, err error) {
 	if newFunc, ok := mqs[typeName]; ok {
 		return newFunc(config)
 	}
