@@ -4,20 +4,21 @@
 "components":[
 	{
         "name": "com1",
-        "in": {
-	      "type": "rpc",
-	      "url": "tcp://127.0.0.1:5001"}
+        "intype": "rpc",
+	"inconf": {
+	      "url": "127.0.0.1:5001"}
 	}, {
         "name": "com2",
-        "in": {
-	      "type": "rpc",
-	      "url": "tcp://127.0.0.1:5002"}
+        "intype": "rpc",
+	"inconf": {
+	      "url": "127.0.0.1:5002"}
 	}, {
         "name": "com3",
-        "in": {
-	      "type": "rpc",
-	      "url": "tcp://127.0.0.1:5003"}
+        "intype": "rpc",
+	"inconf": {
+	      "url": "127.0.0.1:5003"}
 	}],
+	
 "groups":[
 	{
 	"name": "group1",
@@ -29,8 +30,10 @@
 	"members":["com3"]
 	}
 ],
+
 "graphs": {
 	"user.info.get": ["group1", "group2", "group3"],
 	"demo": ["com1"]
 }
 }
+

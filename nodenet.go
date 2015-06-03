@@ -2,32 +2,36 @@ package nodenet
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
+	"time"
+)
+
+const (
+	HEARTBEAT = time.Duration(3) * time.Second
 )
 
 var (
-	groups map[string][]*Component = make(map[string][]*Component)
-	graphs map[string][]string     = make(map[string][]string)
+	components map[string]*Component = make(map[string]*Component)
+	groups     map[string]*Group     = make(map[string]*Group)
+	graphs     map[string][]string   = make(map[string][]string)
 )
 
 var Config struct {
-	Name       string              `json:"name"`
-	Graphs     map[string][]string `json:"graphs"`
-	Groups     []Group             `json:"groups"`
+	Name   string              `json:"name"`
+	Graphs map[string][]string `json:"graphs"`
+	Groups []struct {
+		Name     string   `json:"name"`
+		Dispense string   `json:"dispense"`
+		Members  []string `json:"members"`
+	} `json:"groups"`
 	Components []struct {
-		Name string                 `json:"name"`
-		In   map[string]interface{} `json:"in"`
+		Name   string                 `json:"name"`
+		InType string                 `json:"intype"`
+		InConf map[string]interface{} `json:"inconf"`
 	} `json:"components"`
 }
 
-type Group struct {
-	Name     string   `json:"name"`
-	Dispense string   `json:"dispense"`
-	Members  []string `json:"members"`
-}
-
-func BuildComFromConfig(fileName string) {
+func BuildFromConfig(fileName string) {
 	r, err := os.Open(fileName)
 	if err != nil {
 		panic(err)
@@ -39,24 +43,24 @@ func BuildComFromConfig(fileName string) {
 	}
 
 	for i := 0; i < len(Config.Components); i++ {
-		_, err := NewComponent(Config.Components[i].Name, Config.Components[i].In)
+		_, err := NewComponent(Config.Components[i].Name, Config.Components[i].InType, Config.Components[i].InConf)
 		if err != nil {
 			panic(err)
 		}
 	}
-	fmt.Println(components)
 
 	for i := 0; i < len(Config.Groups); i++ {
-		members := Config.Groups[i].Members
-		for j := 0; j < len(members); j++ {
-			comp := components[members[j]]
-			if comp != nil {
-				groups[Config.Groups[i].Name] = append(groups[Config.Groups[i].Name], comp)
+		l := len(Config.Groups[i].Members)
+		coms := make([]*Component, l)
+		for j := 0; j < l; j++ {
+			coms[j] = components[Config.Groups[i].Members[j]]
+			if coms[j] == nil {
+				panic("No component name's " + Config.Groups[i].Members[j])
 			}
 		}
+
+		NewGroup(Config.Groups[i].Name, Config.Groups[i].Dispense, coms)
 	}
-	fmt.Println(groups)
 
 	graphs = Config.Graphs
-	fmt.Println(graphs)
 }

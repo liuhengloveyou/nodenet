@@ -8,7 +8,7 @@ import (
 )
 
 func TestComponent(t *testing.T) {
-	com1, err := nodenet.NewComponent("com1", nil)
+	com1, err := nodenet.NewComponent("com1", "rpc", nil)
 	fmt.Println(com1, err)
 	com1.Run()
 }

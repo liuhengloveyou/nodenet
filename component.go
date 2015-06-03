@@ -10,43 +10,39 @@ import (
 	log "github.com/golang/glog"
 )
 
-var components map[string]*Component = make(map[string]*Component)
-
 // 业务处理函数
 type ComponentHandler func(interface{}) (result interface{}, err error)
 
 // 端点
 type EndPoint struct {
 	MQType string
-	Url    string
 	conf   interface{}
 	mq     MessageQueue
 }
 
 // 组件
 type Component struct {
-	Name    string               // 组件名
-	Group   string               // 组件所属的组
-	in      EndPoint             // 接收消息端点
-	outs    map[string]*EndPoint // 所有下游端点
-	handler ComponentHandler     // 业务处理函数
+	Name    string           // 组件名
+	Group   string           // 组件所属的组
+	in      EndPoint         // 接收消息端点
+	handler ComponentHandler // 业务处理函数
 }
 
-func NewComponent(name string, inconf interface{}) (*Component, error) {
-	sname := strings.TrimSpace(name)
+func NewComponent(name, intype string, inconf interface{}) (*Component, error) {
+	sname, sintype := strings.TrimSpace(name), strings.TrimSpace(intype)
 	if sname == "" {
 		return nil, fmt.Errorf("Component's name empty")
 	}
+	if sintype == "" {
+		return nil, fmt.Errorf("Component's type empty")
+	}
 
-	com := &Component{
+	components[sname] = &Component{
 		Name:    sname,
-		in:      EndPoint{MQType: "", Url: "", conf: inconf, mq: nil},
-		outs:    make(map[string]*EndPoint),
+		in:      EndPoint{MQType: sintype, conf: inconf, mq: nil},
 		handler: nil}
 
-	components[com.Name] = com
-
-	return com, nil
+	return components[sname], nil
 }
 
 func GetComponentByName(name string) *Component {
@@ -132,28 +128,32 @@ func (p *Component) dealMsg(msg []byte) {
 		next = comsg.Entrance
 	}
 
-	_, err := p.sendToNext(next, comsg)
+	msg, _ = comsg.Marshal()
+
+	err := p.sendToNext(next, msg)
 	if err != nil {
 		log.Errorln(p.Name, "send to real next ERR: ", string(msg))
 	}
 }
 
-func (p *Component) sendToNext(name string, comsg *Message) (total int, err error) {
-	/*
-		if url == "" {
-			return 0, fmt.Errorf("sendTo nil url")
-		}
+func (p *Component) sendToNext(name string, msg []byte) (err error) {
+	if name == "" {
+		return fmt.Errorf("SendTo where?")
+	}
 
-		if _, ok := p.outs[url]; ok == false {
-			mqtmp, err := NewMq(p.in.MQType, url)
-			if err != nil {
-				return 0, err
-			}
-			p.outs[url] = &EndPoint{Url: url, MQType: p.in.MQType, mq: mqtmp}
-		}
+	com := GroupGetNext(name)
+	if com == nil {
+		return fmt.Errorf("Get component nil: %s", name)
+	}
 
-		log.Infoln(p.Name, "sendToNext:", url, string(msg))
-		total, err = p.outs[url].mq.SendToNext(msg)
-	*/
-	return
+	if nil == com.in.mq {
+		com.in.mq, err = NewMQ(com.in.MQType, com.in.conf)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Infoln(p.Name, "sendToNext:", com.Name, string(msg))
+
+	return com.in.mq.SendMessage(msg)
 }
