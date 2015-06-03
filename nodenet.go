@@ -2,8 +2,11 @@ package nodenet
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"time"
+
+	log "github.com/golang/glog"
 )
 
 const (
@@ -63,4 +66,30 @@ func BuildFromConfig(fileName string) {
 	}
 
 	graphs = Config.Graphs
+}
+
+func SendMsgToNext(name string, comsg *Message) (err error) {
+	if name == "" {
+		return fmt.Errorf("SendTo where?")
+	}
+
+	com := GroupGetNext(name)
+	if com == nil {
+		com = components[name]
+	}
+	if com == nil {
+		return fmt.Errorf("Get component nil: %s", name)
+	}
+
+	if nil == com.in.mq {
+		com.in.mq, err = NewMQ(com.in.MQType, com.in.conf)
+		if err != nil {
+			return err
+		}
+	}
+
+	msg, _ := comsg.Marshal()
+	log.Infoln(com.Name, "SendMsgToNext:", string(msg))
+
+	return com.in.mq.SendMessage(msg)
 }

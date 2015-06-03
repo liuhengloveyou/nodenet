@@ -114,6 +114,10 @@ func (p *Component) dealMsg(msg []byte) {
 				comsg.Payload = nil
 			} else {
 				log.Infoln(p.Name, "Call handler ok")
+				if rst == nil {
+					return // 不往下走了, 入口才会这样
+				}
+
 				comsg.Payload = rst
 			}
 		}
@@ -128,32 +132,8 @@ func (p *Component) dealMsg(msg []byte) {
 		next = comsg.Entrance
 	}
 
-	msg, _ = comsg.Marshal()
-
-	err := p.sendToNext(next, msg)
+	err := SendMsgToNext(next, comsg)
 	if err != nil {
 		log.Errorln(p.Name, "send to real next ERR: ", string(msg))
 	}
-}
-
-func (p *Component) sendToNext(name string, msg []byte) (err error) {
-	if name == "" {
-		return fmt.Errorf("SendTo where?")
-	}
-
-	com := GroupGetNext(name)
-	if com == nil {
-		return fmt.Errorf("Get component nil: %s", name)
-	}
-
-	if nil == com.in.mq {
-		com.in.mq, err = NewMQ(com.in.MQType, com.in.conf)
-		if err != nil {
-			return err
-		}
-	}
-
-	log.Infoln(p.Name, "sendToNext:", com.Name, string(msg))
-
-	return com.in.mq.SendMessage(msg)
 }

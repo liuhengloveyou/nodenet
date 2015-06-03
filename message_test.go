@@ -8,13 +8,12 @@ import (
 )
 
 func TestNewMessage(t *testing.T) {
-	msg, err := nodenet.NewMessage("demo", "demo message")
+	msg, err := nodenet.NewMessage("demo", []string{"com1"}, "demo message")
 	fmt.Println(msg, err)
 }
 
 func TestMsgGraph(t *testing.T) {
-	msg, err := nodenet.NewMessage("demo", "demo message")
-	msg.SetGraph([]string{"aaa", "bbb", "ccc"})
+	msg, err := nodenet.NewMessage("demo", []string{"com1"}, "demo message")
 	fmt.Println(msg, err)
 	msg.PopGraph()
 	fmt.Println(msg)

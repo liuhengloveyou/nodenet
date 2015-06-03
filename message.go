@@ -15,7 +15,7 @@ type Message struct {
 	Payload  interface{}            `json:"payload"`
 }
 
-func NewMessage(entrance string, payload interface{}) (msg *Message, err error) {
+func NewMessage(entrance string, graphs []string, payload interface{}) (msg *Message, err error) {
 	msgID := ""
 	if u, e := uuid.NewV4(); e != nil {
 		err = e
@@ -27,7 +27,8 @@ func NewMessage(entrance string, payload interface{}) (msg *Message, err error) 
 	msg = &Message{
 		ID:       msgID,
 		Entrance: strings.TrimSpace(entrance),
-		Graph:    nil,
+		Graph:    graphs,
+		Context:  make(map[string]interface{}),
 		Payload:  payload}
 
 	return
