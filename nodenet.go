@@ -93,3 +93,7 @@ func SendMsgToNext(name string, comsg *Message) (err error) {
 
 	return com.in.mq.SendMessage(msg)
 }
+
+func GetGraphByName(name string) []string {
+	return graphs[name]
+}
