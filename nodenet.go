@@ -3,10 +3,9 @@ package nodenet
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"time"
-
-	log "github.com/golang/glog"
 )
 
 const (
@@ -81,17 +80,10 @@ func SendMsgToNext(name string, comsg *Message) (err error) {
 		return fmt.Errorf("Get component nil: %s", name)
 	}
 
-	if nil == com.in.mq {
-		com.in.mq, err = NewMQ(com.in.MQType, com.in.conf)
-		if err != nil {
-			return err
-		}
-	}
-
 	msg, _ := comsg.Marshal()
-	log.Infoln(com.Name, "SendMsgToNext:", string(msg))
+	log.Println(com.Name, "SendMsgToNext:", string(msg))
 
-	return com.in.mq.SendMessage(msg)
+	return com.in.SendMessage(msg)
 }
 
 func GetGraphByName(name string) []string {

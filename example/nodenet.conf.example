@@ -2,19 +2,22 @@
 "components":[
 	{
         "name": "com1",
-        "intype": "rpc",
+        "intype": "tcp",
 	"inconf": {
-	      "url": "127.0.0.1:5001"}
+	      "url": "127.0.0.1:5001",
+	      "timeout": 60}
 	}, {
         "name": "com2",
-        "intype": "rpc",
+        "intype": "tcp",
 	"inconf": {
-	      "url": "127.0.0.1:5002"}
+	      "url": "127.0.0.1:5002",
+	      "timeout": 60}
 	}, {
         "name": "com3",
-        "intype": "rpc",
+        "intype": "tcp",
 	"inconf": {
-	      "url": "127.0.0.1:5003"}
+	      "url": "127.0.0.1:5003",
+	      "timeout": 60}
 	}],
 	
 "groups":[

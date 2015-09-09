@@ -9,14 +9,14 @@ import (
 
 var mqs map[string]mqType = make(map[string]mqType)
 
+type mqType func(interface{}) (MessageQueue, error)
+
 // 消息接口
 type MessageQueue interface {
-	Ready() error                 // 准备工作
-	RecvMessage() ([]byte, error) // 读一条消息
-	SendMessage([]byte) error     // 发送一条消息到该节点
+	StartService()               // 启动监听
+	GetMessage() ([]byte, error) // 读取一条消息
+	SendMessage([]byte) error    // 发送一条消息到该节点
 }
-
-type mqType func(interface{}) (MessageQueue, error)
 
 func RegisterMq(name string, one mqType) {
 	if one == nil {

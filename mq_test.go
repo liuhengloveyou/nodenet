@@ -1,32 +1,50 @@
 package nodenet_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/liuhengloveyou/nodenet"
 )
 
-const config = `{"url":"127.0.0.1:12345"}`
+var config = map[string]interface{}{"url": "127.0.0.1:12345", "timeout": 3}
 
-func TestRpcServ(t *testing.T) {
-	mq, err := nodenet.NewMQ("rpc", []byte(config))
+func TestTcpServ(t *testing.T) {
+	mq, err := nodenet.NewMQ("tcp", config)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
 
-	err = mq.Ready()
+	mq.StartService()
 
-	msg, e := mq.RecvMessage()
-	fmt.Println(string(msg), e)
+	msg, e := mq.GetMessage()
+	t.Log(string(msg), e)
+
+	return
 }
 
-func TestRpcClient(t *testing.T) {
-	mq, err := nodenet.NewMQ("rpc", []byte(config))
+func TestTcpClient(t *testing.T) {
+	mq, err := nodenet.NewMQ("tcp", config)
 	if err != nil {
-		fmt.Println(err)
+		t.Error(err)
 	}
 
-	rst := mq.SendMessage([]byte("rpc test."))
-	fmt.Println(rst)
+	rst := mq.SendMessage([]byte("tcp test."))
+	t.Log(rst)
+}
+
+func TestByte(t *testing.T) {
+	buf := make([]byte, 16)
+	var tmp []byte
+
+	tmp = buf[6:9]
+	t.Log(tmp, (len(tmp) == 0))
+
+	tmp[0] = 'a'
+	tmp[1] = 'b'
+	t.Log(buf)
+
+	for i := 0; i < len(tmp); i++ {
+		buf[i] = tmp[i]
+	}
+	t.Log(buf)
 }

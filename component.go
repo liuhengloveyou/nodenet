@@ -13,18 +13,12 @@ import (
 // 业务处理函数
 type ComponentHandler func(interface{}) (result interface{}, err error)
 
-// 端点
-type EndPoint struct {
-	MQType string
-	conf   interface{}
-	mq     MessageQueue
-}
-
 // 组件
 type Component struct {
-	Name    string           // 组件名
-	Group   string           // 组件所属的组
-	in      EndPoint         // 接收消息端点
+	Name  string // 组件名
+	Group string // 组件所属的组
+
+	in      MessageQueue     // 接收消息端点
 	handler ComponentHandler // 业务处理函数
 }
 
@@ -37,12 +31,12 @@ func NewComponent(name, intype string, inconf interface{}) (*Component, error) {
 		return nil, fmt.Errorf("Component's type empty")
 	}
 
-	components[sname] = &Component{
-		Name:    sname,
-		in:      EndPoint{MQType: sintype, conf: inconf, mq: nil},
-		handler: nil}
+	components[sname] = &Component{Name: sname, in: nil, handler: nil}
 
-	return components[sname], nil
+	var e error
+	components[sname].in, e = NewMQ(intype, inconf)
+
+	return components[sname], e
 }
 
 func GetComponentByName(name string) *Component {
@@ -54,27 +48,14 @@ func GetComponentByName(name string) *Component {
 }
 
 func (p *Component) SetHandler(handler ComponentHandler) {
-	if handler == nil {
-		panic("Set Handler nil")
-	}
-
 	p.handler = handler
 }
 
 func (p *Component) Run() (err error) {
 	log.Infoln("Component Run...", p.Name)
 
-	// 创建接收MQ
-	p.in.mq, err = NewMQ(p.in.MQType, p.in.conf)
-	if err != nil {
-		return
-	}
-
-	// MQ 准备
-	err = p.in.mq.Ready()
-	if err != nil {
-		return
-	}
+	// MessageQueue 启动
+	p.in.StartService()
 
 	// 开始监听
 	p.recvMonitor()
@@ -84,7 +65,7 @@ func (p *Component) Run() (err error) {
 
 func (p *Component) recvMonitor() {
 	for {
-		msg, err := p.in.mq.RecvMessage()
+		msg, err := p.in.GetMessage()
 		if err != nil {
 			log.Errorln(p.Name, "Error receiving message:", err.Error())
 			continue
