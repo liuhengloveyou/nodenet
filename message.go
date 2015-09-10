@@ -8,11 +8,12 @@ import (
 )
 
 type Message struct {
-	ID       string                 `json:"id"`
-	Entrance string                 `json:"entrance"`
-	Graph    []string               `json:"graph"`
-	Context  map[string]interface{} `json:"context"`
-	Payload  interface{}            `json:"payload"`
+	ID          string                 `json:"id"`
+	Entrance    string                 `json:"entrance"`
+	Graph       []string               `json:"graph"`
+	Context     map[string]interface{} `json:"context"`
+	Payload     interface{}            `json:"payload"`
+	DispenseKey string                 `json:"dispense"` // 均衡分发键
 }
 
 func NewMessage(entrance string, graphs []string, payload interface{}) (msg *Message, err error) {

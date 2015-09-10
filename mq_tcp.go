@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"log"
 	"net"
 	"sync/atomic"
 	"time"
+
+	log "github.com/golang/glog"
 )
 
 type MqTcp struct {
@@ -51,14 +52,14 @@ func (p *MqTcp) config(conf interface{}) error {
 func (p *MqTcp) StartService() {
 	listener, e := net.Listen("tcp", p.Url)
 	if e != nil {
-		log.Panicln(e)
+		log.Fatalln(e)
 	}
 
 	go func() {
 		for {
 			conn, e := listener.Accept()
 			if e != nil {
-				log.Panicln(e)
+				log.Fatalln(e)
 				//continue
 			}
 
@@ -86,14 +87,11 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 
 	n, mlen := 0, len(msg)
 	buff := &bytes.Buffer{}
-	e = binary.Write(buff, binary.LittleEndian, uint16(mlen))
-	if e != nil {
-		return e
-	}
-	e = binary.Write(buff, binary.LittleEndian, msg)
-	if e != nil {
-		return e
-	}
+
+	var head [2]byte
+	binary.LittleEndian.PutUint16(head[0:], uint16(mlen))
+	buff.Write(head[0:])
+	buff.Write(msg)
 
 	p.conn.SetWriteDeadline(time.Now().Add(p.Timeout * time.Second))
 	n, e = p.conn.Write(buff.Bytes())
@@ -101,10 +99,10 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 		return
 	}
 	if n != buff.Len() {
-		log.Panicln("tcp.Write short.")
+		log.Fatalln("tcp.Write short.")
 	}
 
-	log.Println("MqTcp SendMessage: ", p.Url, string(msg))
+	log.Infoln("MqTcp SendMessage: ", p.Url, string(msg))
 
 	return nil
 }
@@ -125,7 +123,7 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			conn.SetReadDeadline(time.Now().Add(p.Timeout * time.Second * 2))
 			n, e = conn.Read(buf)
 			if e != nil {
-				log.Println("tcp.Read ERR: ", e.Error())
+				log.Infoln("tcp.Read ERR: ", e.Error())
 				conn.Close()
 				conn = nil
 				break
@@ -146,14 +144,17 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			}
 		}
 
+		log.Infoln(p.Url, "buf: ", msgLen, string(buf))
+
 		if msgLen == 0 {
-			head := []byte{buf[0], buf[1]}
-			msgLen64, _ := binary.Uvarint(head)
-			msgLen = int(msgLen64)
+			tl := binary.LittleEndian.Uint16(buf)
+			msgLen = int(tl)
 			if msgLen == 0 {
-				log.Println("heartbeat")
+				log.Infoln("heartbeat")
 				continue // heartbeat
 			}
+			log.Infoln(p.Url, "msg: ", msgLen, n, string(msg.Bytes()))
+
 			msg.Write(buf[2:n])
 			msgLen = msgLen - n + 2
 		} else {
@@ -167,7 +168,10 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			}
 		}
 
+		log.Infoln(p.Url, "msg: ", msgLen, string(msg.Bytes()))
+
 		if msgLen == 0 {
+			log.Infoln(p.Url, "Pop: ", string(msg.Bytes()))
 			p.ch <- msg.Bytes()
 			msg.Reset()
 		}
@@ -187,7 +191,7 @@ func (p *MqTcp) heartbeat() {
 		p.conn.SetWriteDeadline(time.Now().Add(p.Timeout * time.Second))
 		n, e := p.conn.Write(msg)
 		if e != nil || n != len(msg) {
-			log.Println("heartbeat ERR:", n, e.Error())
+			log.Infoln("heartbeat ERR:", n, e.Error())
 			p.conn.Close()
 			p.conn = nil
 			break

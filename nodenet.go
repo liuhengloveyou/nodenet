@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	log "github.com/golang/glog"
 )
 
 var (
@@ -38,6 +40,7 @@ func BuildFromConfig(fileName string) {
 		panic(err)
 	}
 
+	// 组件
 	for i := 0; i < len(Config.Components); i++ {
 		_, err := NewComponent(Config.Components[i].Name, Config.Components[i].InType, Config.Components[i].InConf)
 		if err != nil {
@@ -45,6 +48,7 @@ func BuildFromConfig(fileName string) {
 		}
 	}
 
+	// 组
 	for i := 0; i < len(Config.Groups); i++ {
 		l := len(Config.Groups[i].Members)
 		coms := make([]*Component, l)
@@ -58,33 +62,40 @@ func BuildFromConfig(fileName string) {
 		NewGroup(Config.Groups[i].Name, Config.Groups[i].Dispense, coms)
 	}
 
+	// 图
 	graphs = Config.Graphs
 }
 
-func SendMsgToNext(name string, comsg *Message) (err error) {
-	if name == "" {
-		return fmt.Errorf("SendTo where?")
+func SendMsgToNext(msg *Message) (err error) {
+	if msg == nil {
+		return fmt.Errorf("Send message nil.")
 	}
 
-	/*
-		group := GetGroupComponentByName(name)
-		if com == nil {
-			com := components[name]
-		} else {
+	next := msg.TopGraph()
+	if next == "" {
+		return fmt.Errorf("No graph found.")
+	}
 
-		}
-		if com == nil {
-			return fmt.Errorf("Get component nil: %s", name)
-		}
+	return SendMsgToComponent(next, msg)
+}
 
-		msg, _ := comsg.Marshal()
-		log.Println(com.Name, "SendMsgToNext:", string(msg))
+func SendMsgToComponent(name string, msg *Message) (err error) {
+	var com *Component = nil
+	group := GetGroupComponentByName(name) // 发向一个组吗?
+	if group == nil {
+		com = components[name]
+	} else {
+		com = group.GetNode(msg.DispenseKey)
+	}
+	if com == nil {
+		return fmt.Errorf("Get component nil: %s", name)
+	}
 
-		return com.in.SendMessage(msg)
+	msgb, _ := msg.Marshal()
+	log.Infoln(com.Name, "SendMsgToNext:", string(msgb))
 
-	*/
+	return com.in.SendMessage(msgb)
 
-	return nil
 }
 
 func GetGroupComponentByName(name string) *ComponentGroup {
