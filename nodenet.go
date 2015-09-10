@@ -3,19 +3,13 @@ package nodenet
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
-	"time"
-)
-
-const (
-	HEARTBEAT = time.Duration(3) * time.Second
 )
 
 var (
-	components map[string]*Component = make(map[string]*Component)
-	groups     map[string]*Group     = make(map[string]*Group)
-	graphs     map[string][]string   = make(map[string][]string)
+	components map[string]*Component      = make(map[string]*Component)
+	groups     map[string]*ComponentGroup = make(map[string]*ComponentGroup)
+	graphs     map[string][]string        = make(map[string][]string)
 )
 
 var Config struct {
@@ -27,9 +21,9 @@ var Config struct {
 		Members  []string `json:"members"`
 	} `json:"groups"`
 	Components []struct {
-		Name   string                 `json:"name"`
-		InType string                 `json:"intype"`
-		InConf map[string]interface{} `json:"inconf"`
+		Name   string      `json:"name"`
+		InType string      `json:"intype"`
+		InConf interface{} `json:"inconf"`
 	} `json:"components"`
 }
 
@@ -72,18 +66,41 @@ func SendMsgToNext(name string, comsg *Message) (err error) {
 		return fmt.Errorf("SendTo where?")
 	}
 
-	com := GroupGetNext(name)
-	if com == nil {
-		com = components[name]
-	}
-	if com == nil {
-		return fmt.Errorf("Get component nil: %s", name)
+	/*
+		group := GetGroupComponentByName(name)
+		if com == nil {
+			com := components[name]
+		} else {
+
+		}
+		if com == nil {
+			return fmt.Errorf("Get component nil: %s", name)
+		}
+
+		msg, _ := comsg.Marshal()
+		log.Println(com.Name, "SendMsgToNext:", string(msg))
+
+		return com.in.SendMessage(msg)
+
+	*/
+
+	return nil
+}
+
+func GetGroupComponentByName(name string) *ComponentGroup {
+	if group, ok := groups[name]; ok {
+		return group
 	}
 
-	msg, _ := comsg.Marshal()
-	log.Println(com.Name, "SendMsgToNext:", string(msg))
+	return nil
+}
 
-	return com.in.SendMessage(msg)
+func GetComponentByName(name string) *Component {
+	if component, ok := components[name]; ok {
+		return component
+	}
+
+	return nil
 }
 
 func GetGraphByName(name string) []string {

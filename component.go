@@ -39,14 +39,6 @@ func NewComponent(name, intype string, inconf interface{}) (*Component, error) {
 	return components[sname], e
 }
 
-func GetComponentByName(name string) *Component {
-	if component, ok := components[name]; ok {
-		return component
-	}
-
-	return nil
-}
-
 func (p *Component) SetHandler(handler ComponentHandler) {
 	p.handler = handler
 }

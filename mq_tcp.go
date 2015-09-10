@@ -15,7 +15,7 @@ type MqTcp struct {
 	Timeout time.Duration `json:"timeout"`
 
 	ch   chan []byte
-	conn net.Conn
+	conn net.Conn // 连接到该节点的客户端, 是消息发送方.
 	ws   int32
 }
 
@@ -56,13 +56,13 @@ func (p *MqTcp) StartService() {
 
 	go func() {
 		for {
-			p.conn, e = listener.Accept()
+			conn, e := listener.Accept()
 			if e != nil {
 				log.Panicln(e)
 				//continue
 			}
 
-			go p.handleConnection()
+			go p.handleConnection(conn)
 		}
 	}()
 }
@@ -72,6 +72,9 @@ func (p *MqTcp) GetMessage() (msg []byte, e error) {
 }
 
 func (p *MqTcp) SendMessage(msg []byte) (e error) {
+	atomic.AddInt32(&p.ws, 1)
+	defer atomic.AddInt32(&p.ws, -1)
+
 	if p.conn == nil {
 		p.conn, e = net.Dial("tcp", p.Url)
 		if e != nil {
@@ -92,10 +95,8 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 		return e
 	}
 
-	atomic.AddInt32(&p.ws, 1)
 	p.conn.SetWriteDeadline(time.Now().Add(p.Timeout * time.Second))
 	n, e = p.conn.Write(buff.Bytes())
-	atomic.AddInt32(&p.ws, -1)
 	if e != nil {
 		return
 	}
@@ -108,7 +109,7 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 	return nil
 }
 
-func (p *MqTcp) handleConnection() {
+func (p *MqTcp) handleConnection(conn net.Conn) {
 	var (
 		msgLen int
 		n      int
@@ -121,17 +122,17 @@ func (p *MqTcp) handleConnection() {
 
 	for {
 		if len(tmp) == 0 {
-			p.conn.SetReadDeadline(time.Now().Add(p.Timeout * time.Second * 2))
-			n, e = p.conn.Read(buf)
+			conn.SetReadDeadline(time.Now().Add(p.Timeout * time.Second * 2))
+			n, e = conn.Read(buf)
 			if e != nil {
 				log.Println("tcp.Read ERR: ", e.Error())
-				p.conn.Close()
-				p.conn = nil
+				conn.Close()
+				conn = nil
 				break
 
 				/*if e == io.EOF {
-					p.conn.Close()
-					p.conn = nil
+					conn.Close()
+					conn = nil
 					break
 				} else if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
 					log.Println("Timeout: ", e.Error())

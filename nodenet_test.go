@@ -23,11 +23,11 @@ func TestNodenet(t *testing.T) {
 
 	// 新建一个消息
 	msg, _ := nodenet.NewMessage("demo", []string{"com1"}, "demo message")
-	fmt.Println(msg)
+	t.Log(msg)
 
 	// 把消息发送给com1组件
 	err := nodenet.SendMsgToNext("com1", msg)
-	fmt.Println(err)
+	t.Log(err)
 }
 
 // 当组件收到一条消息的时候, 会调用work函数处理
