@@ -44,8 +44,8 @@ func (p *Component) SetHandler(handler ComponentHandler) {
 	p.handler = handler
 }
 
-func (p *Component) Run() (err error) {
-	gocommon.SingleInstane("/var/run/nodenet." + p.Name + ".pid")
+func (p *Component) Run() error {
+	gocommon.SingleInstane("/tmp/nodenet." + p.Name + ".pid")
 	log.Infoln("Component Run...", p.Name)
 
 	// MessageQueue 启动
