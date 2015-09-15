@@ -29,22 +29,22 @@ var Config struct {
 	} `json:"components"`
 }
 
-func BuildFromConfig(fileName string) {
+func BuildFromConfig(fileName string) error {
 	r, err := os.Open(fileName)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
 	if err = json.NewDecoder(r).Decode(&Config); err != nil {
-		panic(err)
+		return err
 	}
 
 	// 组件
 	for i := 0; i < len(Config.Components); i++ {
 		_, err := NewComponent(Config.Components[i].Name, Config.Components[i].InType, Config.Components[i].InConf)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
@@ -55,7 +55,7 @@ func BuildFromConfig(fileName string) {
 		for j := 0; j < l; j++ {
 			coms[j] = components[Config.Groups[i].Members[j]]
 			if coms[j] == nil {
-				panic("No component name's " + Config.Groups[i].Members[j])
+				return fmt.Errorf("No component name's [%s]", Config.Groups[i].Members[j])
 			}
 		}
 
@@ -64,6 +64,8 @@ func BuildFromConfig(fileName string) {
 
 	// 图
 	graphs = Config.Graphs
+
+	return nil
 }
 
 func SendMsgToNext(msg *Message) (err error) {

@@ -43,5 +43,5 @@ func work1(msg interface{}) (result interface{}, err error) {
 func work2(msg interface{}) (result interface{}, err error) {
 	fmt.Println("work2>>>>>>", msg)
 
-	return nil, nil
+	return nil, nil // 不会再往下发, 只能入口才应该返回nil.
 }

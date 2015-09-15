@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	log "github.com/golang/glog"
+	gocommon "github.com/liuhengloveyou/go-common"
 )
 
 // 业务处理函数
@@ -44,6 +45,7 @@ func (p *Component) SetHandler(handler ComponentHandler) {
 }
 
 func (p *Component) Run() (err error) {
+	gocommon.SingleInstane("/var/run/nodenet." + p.Name + ".pid")
 	log.Infoln("Component Run...", p.Name)
 
 	// MessageQueue 启动
