@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"net"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	log "github.com/golang/glog"
@@ -17,7 +17,7 @@ type MqTcp struct {
 
 	ch   chan []byte
 	conn net.Conn // 连接到该节点的客户端, 是消息发送方.
-	ws   int32
+	lock sync.Mutex
 }
 
 func init() {
@@ -54,6 +54,7 @@ func (p *MqTcp) StartService() {
 	if e != nil {
 		log.Fatalln(e)
 	}
+	log.Infoln("Listen:", p.Url)
 
 	go func() {
 		for {
@@ -62,7 +63,7 @@ func (p *MqTcp) StartService() {
 				log.Fatalln(e)
 				//continue
 			}
-
+			log.Infoln("Accept:", conn.LocalAddr(), conn.RemoteAddr())
 			go p.handleConnection(conn)
 		}
 	}()
@@ -73,8 +74,8 @@ func (p *MqTcp) GetMessage() (msg []byte, e error) {
 }
 
 func (p *MqTcp) SendMessage(msg []byte) (e error) {
-	atomic.AddInt32(&p.ws, 1)
-	defer atomic.AddInt32(&p.ws, -1)
+	p.lock.Lock()
+	defer p.lock.Unlock()
 
 	if p.conn == nil {
 		p.conn, e = net.Dial("tcp", p.Url)
@@ -184,12 +185,10 @@ func (p *MqTcp) heartbeat() {
 	for {
 		time.Sleep(p.Timeout * time.Second)
 
-		if p.ws > 0 {
-			continue
-		}
-
+		p.lock.Lock()
 		p.conn.SetWriteDeadline(time.Now().Add(p.Timeout * time.Second))
 		n, e := p.conn.Write(msg)
+		p.lock.Unlock()
 		if e != nil || n != len(msg) {
 			log.Infoln("heartbeat ERR:", n, e.Error())
 			p.conn.Close()

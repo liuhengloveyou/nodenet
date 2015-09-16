@@ -59,7 +59,7 @@ func BuildFromConfig(fileName string) error {
 			}
 		}
 
-		NewGroup(Config.Groups[i].Name, Config.Groups[i].Dispense, coms)
+		groups[Config.Groups[i].Name] = NewGroup(Config.Groups[i].Name, Config.Groups[i].Dispense, coms)
 	}
 
 	// 图
