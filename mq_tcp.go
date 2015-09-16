@@ -124,7 +124,7 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			conn.SetReadDeadline(time.Now().Add(p.Timeout * time.Second * 2))
 			n, e = conn.Read(buf)
 			if e != nil {
-				log.Infoln("tcp.Read ERR: ", e.Error())
+				log.Infoln("tcp.Read ERR: ", e.Error(), conn.LocalAddr(), conn.RemoteAddr())
 				conn.Close()
 				conn = nil
 				break
@@ -145,13 +145,13 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			}
 		}
 
-		log.Infoln(p.Url, "buf: ", msgLen, string(buf))
+		log.Infoln(p.Url, "buf: ", msgLen)
 
 		if msgLen == 0 {
 			tl := binary.LittleEndian.Uint16(buf)
 			msgLen = int(tl)
 			if msgLen == 0 {
-				log.Infoln("heartbeat")
+				log.Infoln("heartbeat:", conn.RemoteAddr())
 				continue // heartbeat
 			}
 			log.Infoln(p.Url, "msg: ", msgLen, n, string(msg.Bytes()))
