@@ -18,7 +18,7 @@ func GetWorkerByType(nodeType string) ComponentHandler {
 	return nil
 }
 
-// 节点名应该配置成: 节点业务类型-节点ID
+// 节点名应该配置成: 节点业务类型(组名)-节点名
 func GetWorkerByName(name string) ComponentHandler {
 	t := strings.Split(name, "-")
 	if len(t) < 1 {
