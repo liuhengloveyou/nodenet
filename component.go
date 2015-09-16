@@ -89,7 +89,7 @@ func (p *Component) dealMsg(msg []byte) {
 			} else {
 				log.Infoln(p.Name, "Call handler ok")
 				if rst == nil {
-					return // 不往下走了, 入口才会这样
+					return // 不往下走了
 				}
 
 				comsg.Payload = rst
