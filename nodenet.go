@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	log "github.com/golang/glog"
 )
 
 var (
@@ -94,7 +92,6 @@ func SendMsgToComponent(name string, msg *Message) (err error) {
 	}
 
 	msgb, _ := msg.Marshal()
-	log.Infoln(com.Name, "SendMsgToNext:", string(msgb))
 
 	return com.in.SendMessage(msgb)
 

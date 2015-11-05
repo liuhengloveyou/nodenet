@@ -5,9 +5,9 @@ package nodenet
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
-	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
 )
 
@@ -46,7 +46,7 @@ func (p *Component) SetHandler(handler ComponentHandler) {
 
 func (p *Component) Run() error {
 	gocommon.SingleInstane("/tmp/nodenet." + p.Name + ".pid")
-	log.Infof("Component Run: [%v]", p.Name)
+	log.Printf("Component Run: [%v]", p.Name)
 
 	// MessageQueue 启动
 	p.in.StartService()
@@ -61,7 +61,7 @@ func (p *Component) recvMonitor() {
 	for {
 		msg, err := p.in.GetMessage()
 		if err != nil {
-			log.Errorln(p.Name, "Error receiving message:", err.Error())
+			log.Println(p.Name, "Error receiving message:", err.Error())
 			continue
 		}
 
@@ -72,10 +72,10 @@ func (p *Component) recvMonitor() {
 func (p *Component) dealMsg(msg []byte) {
 	comsg := &Message{}
 	if e := comsg.Unmarshal(msg); e != nil {
-		log.Errorln(p.Name, "msg's format error:", e.Error(), string(msg))
+		log.Println(p.Name, "msg's format error:", e.Error(), string(msg))
 		return
 	}
-	log.Infoln(p.Name, "Recv:", comsg)
+	log.Println(p.Name, "Recv:", comsg)
 
 	next := comsg.PopGraph()
 	if next == p.Name || next == p.Group {
@@ -83,11 +83,11 @@ func (p *Component) dealMsg(msg []byte) {
 		if p.handler != nil {
 			rst, e := p.handler(comsg.Payload)
 			if e != nil {
-				log.Errorln(p.Name, "worker error, send to entrance:", string(msg), e.Error())
+				log.Println(p.Name, "worker error, send to entrance:", string(msg), e.Error())
 				next = comsg.Entrance
 				comsg.Payload = nil
 			} else {
-				log.Infoln(p.Name, "Call handler ok")
+				log.Println(p.Name, "Call handler ok")
 				if rst == nil {
 					return // 不往下走了
 				}
@@ -98,15 +98,15 @@ func (p *Component) dealMsg(msg []byte) {
 
 		next = comsg.PopGraph()
 		if next == "" {
-			log.Warningln("next is nil. send to entrance:", string(msg))
+			log.Println("next is nil. send to entrance:", string(msg))
 			next = comsg.Entrance
 		}
 	} else if next == "" {
-		log.Warningln("next is empty. send to entrance:", string(msg))
+		log.Println("next is empty. send to entrance:", string(msg))
 		next = comsg.Entrance
 	}
 
 	if err := SendMsgToComponent(next, comsg); err != nil {
-		log.Errorln(p.Name, "Send to next ERR: ", next, string(msg))
+		log.Println(p.Name, "Send to next ERR: ", next, string(msg))
 	}
 }

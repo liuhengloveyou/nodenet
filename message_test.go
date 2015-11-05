@@ -1,7 +1,6 @@
 package nodenet_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/liuhengloveyou/nodenet"
@@ -9,12 +8,12 @@ import (
 
 func TestNewMessage(t *testing.T) {
 	msg, err := nodenet.NewMessage("demo", []string{"com1"}, "demo message")
-	fmt.Println(msg, err)
+	t.Log(msg, err)
 }
 
 func TestMsgGraph(t *testing.T) {
 	msg, err := nodenet.NewMessage("demo", []string{"com1"}, "demo message")
-	fmt.Println(msg, err)
+	t.Log(msg, err)
 	msg.PopGraph()
-	fmt.Println(msg)
+	t.Log(msg)
 }

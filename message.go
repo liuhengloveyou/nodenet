@@ -1,10 +1,10 @@
 package nodenet
 
 import (
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"strings"
-
-	uuid "github.com/nu7hatch/gouuid"
 )
 
 type Message struct {
@@ -17,16 +17,13 @@ type Message struct {
 }
 
 func NewMessage(entrance string, graphs []string, payload interface{}) (msg *Message, err error) {
-	msgID := ""
-	if u, e := uuid.NewV4(); e != nil {
-		err = e
+	var u [16]byte
+	if _, err = rand.Read(u[:]); err != nil {
 		return
-	} else {
-		msgID = u.String()
 	}
 
 	msg = &Message{
-		ID:       msgID,
+		ID:       fmt.Sprintf("%x%x%x%x%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:]),
 		Entrance: strings.TrimSpace(entrance),
 		Graph:    graphs,
 		Context:  make(map[string]interface{}),
