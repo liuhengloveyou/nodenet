@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"log"
 	"net"
 	"sync"
 	"time"
+
+	log "github.com/golang/glog"
 )
 
 type MqTcp struct {
@@ -53,7 +54,7 @@ func (p *MqTcp) StartService() {
 	if e != nil {
 		log.Fatalln(e)
 	}
-	log.Println("Listen:", p.Url)
+	log.Infoln("Listen:", p.Url)
 
 	go func() {
 		for {
@@ -62,7 +63,7 @@ func (p *MqTcp) StartService() {
 				log.Fatalln(e)
 				//continue
 			}
-			log.Println("Accept:", conn.LocalAddr(), conn.RemoteAddr())
+			log.Infoln("Accept:", conn.LocalAddr(), conn.RemoteAddr())
 			go p.handleConnection(conn)
 		}
 	}()
@@ -102,7 +103,7 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 		log.Fatalln("tcp.Write short.")
 	}
 
-	log.Println("MqTcp SendMessage: ", p.Url, string(msg))
+	log.Infoln("MqTcp SendMessage: ", p.Url, string(msg))
 
 	return nil
 }
@@ -123,7 +124,7 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			conn.SetReadDeadline(time.Now().Add(p.Timeout * time.Second * 2))
 			n, e = conn.Read(buf)
 			if e != nil {
-				log.Println("tcp.Read ERR: ", e.Error(), conn.LocalAddr(), conn.RemoteAddr())
+				log.Infoln("tcp.Read ERR: ", e.Error(), conn.LocalAddr(), conn.RemoteAddr())
 				conn.Close()
 				conn = nil
 				break
@@ -144,16 +145,16 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			}
 		}
 
-		log.Println(p.Url, "buf: ", msgLen)
+		// log.Infoln(p.Url, "buf: ", msgLen)
 
 		if msgLen == 0 {
 			tl := binary.LittleEndian.Uint16(buf)
 			msgLen = int(tl)
 			if msgLen == 0 {
-				log.Println("heartbeat:", conn.RemoteAddr())
+				// log.Infoln("heartbeat:", conn.RemoteAddr())
 				continue // heartbeat
 			}
-			log.Println(p.Url, "msg: ", msgLen, n, string(msg.Bytes()))
+			log.Infoln(p.Url, "msg: ", msgLen, n, string(msg.Bytes()))
 
 			msg.Write(buf[2:n])
 			msgLen = msgLen - n + 2
@@ -168,10 +169,10 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			}
 		}
 
-		log.Println(p.Url, "msg: ", msgLen, string(msg.Bytes()))
+		log.Infoln(p.Url, "msg: ", msgLen, string(msg.Bytes()))
 
 		if msgLen == 0 {
-			log.Println(p.Url, "Pop: ", string(msg.Bytes()))
+			log.Infoln(p.Url, "Pop: ", string(msg.Bytes()))
 			p.ch <- msg.Bytes()
 			msg.Reset()
 		}
@@ -189,7 +190,7 @@ func (p *MqTcp) heartbeat() {
 		n, e := p.conn.Write(msg)
 		p.lock.Unlock()
 		if e != nil || n != len(msg) {
-			log.Println("heartbeat ERR:", n, e.Error())
+			log.Errorln("heartbeat ERR:", n, e.Error())
 			p.conn.Close()
 			p.conn = nil
 			break
