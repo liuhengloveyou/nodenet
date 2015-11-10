@@ -19,6 +19,12 @@ func TestTcpServ(t *testing.T) {
 	msg, e := mq.GetMessage()
 	t.Log(string(msg), e)
 
+	msg1, e := mq.GetMessage()
+	t.Log(string(msg1), e)
+
+	msg2, e := mq.GetMessage()
+	t.Log(string(msg2), e)
+
 	return
 }
 
@@ -28,7 +34,13 @@ func TestTcpClient(t *testing.T) {
 		t.Error(err)
 	}
 
-	rst := mq.SendMessage([]byte("tcp test."))
+	rst := mq.SendMessage([]byte("22222222222222222222222222222222222222222222222222222222222222222222222222222222222."))
+	t.Log(rst)
+
+	rst = mq.SendMessage([]byte("11111111111."))
+	t.Log(rst)
+
+	rst = mq.SendMessage([]byte("333."))
 	t.Log(rst)
 }
 
@@ -41,6 +53,7 @@ func TestByte(t *testing.T) {
 
 	tmp[0] = 'a'
 	tmp[1] = 'b'
+	tmp[2] = 'c'
 	t.Log(buf)
 
 	for i := 0; i < len(tmp); i++ {

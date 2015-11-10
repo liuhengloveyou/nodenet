@@ -69,10 +69,10 @@ func (p *Component) recvMonitor() {
 	}
 }
 
-func (p *Component) dealMsg(msg []byte) {
+func (p *Component) dealMsg(msg string) {
 	comsg := &Message{}
-	if e := comsg.Unmarshal(msg); e != nil {
-		log.Errorln(p.Name, "msg's format error:", e.Error(), string(msg))
+	if e := comsg.Unmarshal([]byte(msg)); e != nil {
+		log.Errorln(p.Name, "msg's format error:", e.Error(), msg)
 		return
 	}
 	log.Infoln(p.Name, "Recv:", comsg)
@@ -83,7 +83,7 @@ func (p *Component) dealMsg(msg []byte) {
 		if p.handler != nil {
 			rst, e := p.handler(comsg.Payload)
 			if e != nil {
-				log.Errorln(p.Name, "worker error, send to entrance:", string(msg), e.Error())
+				log.Errorln(p.Name, "worker error, send to entrance:", msg, e.Error())
 				next = comsg.Entrance
 				comsg.Payload = nil
 			} else {
@@ -98,15 +98,15 @@ func (p *Component) dealMsg(msg []byte) {
 
 		next = comsg.PopGraph()
 		if next == "" {
-			log.Infoln("next is nil. send to entrance:", string(msg))
+			log.Infoln("next is nil. send to entrance:", msg)
 			next = comsg.Entrance
 		}
 	} else if next == "" {
-		log.Infoln("next is empty. send to entrance:", string(msg))
+		log.Infoln("next is empty. send to entrance:", msg)
 		next = comsg.Entrance
 	}
 
 	if err := SendMsgToComponent(next, comsg); err != nil {
-		log.Errorln(p.Name, "Send to next ERR: ", next, string(msg))
+		log.Errorln(p.Name, "Send to next ERR: ", next, msg)
 	}
 }

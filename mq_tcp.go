@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -15,7 +16,7 @@ type MqTcp struct {
 	Url     string        `json:"url"`
 	Timeout time.Duration `json:"timeout"`
 
-	ch   chan []byte
+	ch   chan string
 	conn net.Conn // 连接到该节点的客户端, 是消息发送方.
 	lock sync.Mutex
 }
@@ -30,7 +31,11 @@ func NewMqTcp(config interface{}) (MessageQueue, error) {
 		return nil, e
 	}
 
-	tmq.ch = make(chan []byte)
+	tmq.ch = make(chan string)
+
+	if tmq.Timeout == 0 {
+		tmq.Timeout = 30
+	}
 
 	return tmq, nil
 }
@@ -69,7 +74,7 @@ func (p *MqTcp) StartService() {
 	}()
 }
 
-func (p *MqTcp) GetMessage() (msg []byte, e error) {
+func (p *MqTcp) GetMessage() (msg string, e error) {
 	return <-p.ch, nil
 }
 
@@ -103,28 +108,26 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 		log.Fatalln("tcp.Write short.")
 	}
 
-	log.Infoln("MqTcp SendMessage: ", p.Url, string(msg))
+	log.Infoln("MqTcp SendMessage: ", p.Url, mlen, string(msg))
 
 	return nil
 }
 
 func (p *MqTcp) handleConnection(conn net.Conn) {
 	var (
-		msgLen int
-		n      int
-		e      error
-		tmp    []byte
+		msgLen int // 当前一条消息的长度
+		rn     int // 当前消息已读长度
 	)
 
 	buf := make([]byte, 65535)
 	msg := &bytes.Buffer{}
 
 	for {
-		if len(tmp) == 0 {
+		if rn == 0 {
 			conn.SetReadDeadline(time.Now().Add(p.Timeout * time.Second * 2))
-			n, e = conn.Read(buf)
+			n, e := conn.Read(buf[rn:])
 			if e != nil {
-				log.Infoln("tcp.Read ERR: ", e.Error(), conn.LocalAddr(), conn.RemoteAddr())
+				log.Infoln("tcp.Read ERR: ", conn.LocalAddr(), conn.RemoteAddr(), e.Error())
 				conn.Close()
 				conn = nil
 				break
@@ -138,33 +141,52 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 					continue
 				}*/
 			}
-		} else {
-			n = len(tmp)
-			for i := 0; i < n; i++ {
-				buf[i] = tmp[i]
-			}
+			rn += n
 		}
 
-		// log.Infoln(p.Url, "buf: ", msgLen)
+		if rn < 2 {
+			log.Warningln("tcp.Read too short:", rn)
+			continue
+		}
+		log.Infof("msgLen:%v; rn:%v; buf:%v;", msgLen, rn)
 
 		if msgLen == 0 {
-			tl := binary.LittleEndian.Uint16(buf)
-			msgLen = int(tl)
-			if msgLen == 0 {
-				// log.Infoln("heartbeat:", conn.RemoteAddr())
-				continue // heartbeat
-			}
-			log.Infoln(p.Url, "msg: ", msgLen, n, string(msg.Bytes()))
+			p := 0
+			for {
+				msgLen = int(binary.LittleEndian.Uint16(buf[p:]))
+				p += 2
 
-			msg.Write(buf[2:n])
-			msgLen = msgLen - n + 2
+				if msgLen == 0 {
+					continue // heartbeat
+				} else if msgLen > 0 {
+					if msgLen >= (rn - p) {
+						msg.Write(buf[p:rn])
+						msgLen -= (rn - p)
+						rn = 0
+					} else {
+						msg.Write(buf[p : p+msgLen])
+						for i, j := 0, p+msgLen; j < rn; i, j = i+1, j+1 {
+							buf[i] = buf[j]
+						}
+						rn -= (p + msgLen)
+						msgLen = 0
+					}
+					break
+				} else {
+					log.Exitln("tcp.Read ERR:", msgLen, string(buf)) // 错误退出
+				}
+			}
 		} else {
-			if msgLen > n {
-				msg.Write(buf[:n])
-				msgLen = msgLen - n
+			if msgLen >= rn {
+				msg.Write(buf[:rn])
+				msgLen -= rn
+				rn = 0
 			} else {
 				msg.Write(buf[:msgLen])
-				tmp = buf[n-msgLen : n]
+				for i, j := 0, msgLen; j < rn; i, j = i+1, j+1 {
+					buf[i] = buf[j]
+				}
+				rn -= msgLen
 				msgLen = 0
 			}
 		}
@@ -173,7 +195,8 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 
 		if msgLen == 0 {
 			log.Infoln(p.Url, "Pop: ", string(msg.Bytes()))
-			p.ch <- msg.Bytes()
+			fmt.Println(p.Url, "Pop: ", string(msg.Bytes()))
+			p.ch <- msg.String()
 			msg.Reset()
 		}
 	}

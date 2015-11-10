@@ -23,7 +23,7 @@ func main() {
 	go nodenet.GetComponentByName("com2").Run()
 
 	// 新建一个消息
-	msg, _ := nodenet.NewMessage("com2", []string{"com1"}, "demo message")
+	msg, _ := nodenet.NewMessage("", "com2", []string{"com1"}, "demo message")
 
 	// 把消息发送给com1组件
 	nodenet.SendMsgToComponent("com1", msg)

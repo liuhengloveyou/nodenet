@@ -16,14 +16,20 @@ type Message struct {
 	DispenseKey string                 `json:"dispense"` // 均衡分发键
 }
 
-func NewMessage(entrance string, graphs []string, payload interface{}) (msg *Message, err error) {
-	var u [16]byte
-	if _, err = rand.Read(u[:]); err != nil {
-		return
+func NewMessage(id, entrance string, graphs []string, payload interface{}) (msg *Message, err error) {
+	if id == "" {
+		var u [16]byte
+		if _, err = rand.Read(u[:]); err != nil {
+			return
+		}
+		id = fmt.Sprintf("%x%x%x%x%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:])
+	}
+	if graphs == nil {
+		graphs = make([]string, 0)
 	}
 
 	msg = &Message{
-		ID:       fmt.Sprintf("%x%x%x%x%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:]),
+		ID:       id,
 		Entrance: strings.TrimSpace(entrance),
 		Graph:    graphs,
 		Context:  make(map[string]interface{}),

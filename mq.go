@@ -14,7 +14,7 @@ type mqType func(interface{}) (MessageQueue, error)
 // 消息接口
 type MessageQueue interface {
 	StartService()               // 启动监听
-	GetMessage() ([]byte, error) // 读取一条消息
+	GetMessage() (string, error) // 读取一条消息
 	SendMessage([]byte) error    // 发送一条消息到该节点
 }
 
