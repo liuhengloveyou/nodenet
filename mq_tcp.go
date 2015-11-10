@@ -102,6 +102,9 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 	p.conn.SetWriteDeadline(time.Now().Add(p.Timeout * time.Second))
 	n, e = p.conn.Write(buff.Bytes())
 	if e != nil {
+		log.Errorln("tcp.Write ERR:", e)
+		p.conn.Close()
+		p.conn = nil
 		return
 	}
 	if n != buff.Len() {
