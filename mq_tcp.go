@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -33,8 +32,9 @@ func NewMqTcp(config interface{}) (MessageQueue, error) {
 
 	tmq.ch = make(chan string)
 
+	tmq.Timeout = tmq.Timeout * time.Second
 	if tmq.Timeout == 0 {
-		tmq.Timeout = 30
+		tmq.Timeout = 30 * time.Second
 	}
 
 	return tmq, nil
@@ -123,6 +123,7 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 	msg := &bytes.Buffer{}
 
 	for {
+	READ:
 		if rn == 0 {
 			conn.SetReadDeadline(time.Now().Add(p.Timeout * time.Second * 2))
 			n, e := conn.Read(buf[rn:])
@@ -148,17 +149,13 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			log.Warningln("tcp.Read too short:", rn)
 			continue
 		}
-		log.Infof("msgLen:%v; rn:%v; buf:%v;", msgLen, rn)
 
 		if msgLen == 0 {
-			p := 0
-			for {
+			for p := 0; ; {
 				msgLen = int(binary.LittleEndian.Uint16(buf[p:]))
 				p += 2
 
-				if msgLen == 0 {
-					continue // heartbeat
-				} else if msgLen > 0 {
+				if msgLen > 0 {
 					if msgLen >= (rn - p) {
 						msg.Write(buf[p:rn])
 						msgLen -= (rn - p)
@@ -172,9 +169,13 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 						msgLen = 0
 					}
 					break
-				} else {
+				} else if msgLen < 0 {
 					log.Exitln("tcp.Read ERR:", msgLen, string(buf)) // 错误退出
+				} else if (p + 2) > rn /* msgLen == 0 heartbeat */ {
+					rn = 0
+					goto READ
 				}
+
 			}
 		} else {
 			if msgLen >= rn {
@@ -191,11 +192,9 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			}
 		}
 
-		log.Infoln(p.Url, "msg: ", msgLen, string(msg.Bytes()))
+		log.Infoln(p.Url, "msg: ", msgLen, msg.String())
 
 		if msgLen == 0 {
-			log.Infoln(p.Url, "Pop: ", string(msg.Bytes()))
-			fmt.Println(p.Url, "Pop: ", string(msg.Bytes()))
 			p.ch <- msg.String()
 			msg.Reset()
 		}
