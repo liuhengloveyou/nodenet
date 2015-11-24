@@ -6,13 +6,15 @@
 	"inconf": {
 	      "url": "127.0.0.1:5001",
 	      "timeout": 60}
-	}, {
+	},
+	{
         "name": "com2",
         "intype": "tcp",
 	"inconf": {
 	      "url": "127.0.0.1:5002",
 	      "timeout": 60}
-	}, {
+	},
+	{
         "name": "com3",
         "intype": "tcp",
 	"inconf": {
@@ -34,7 +36,7 @@
 
 "graphs": {
 	"user.info.get": ["group1", "group2", "group3"],
-	"demo": ["com1"]
+	"demo": ["com1", "com2", "com1"]
 }
 }
 

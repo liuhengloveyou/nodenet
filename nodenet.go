@@ -91,7 +91,7 @@ func SendMsgToComponent(name string, msg *Message) (err error) {
 		return fmt.Errorf("Get component nil: %s", name)
 	}
 
-	msgb, _ := msg.Marshal()
+	msgb := msg.Encode()
 
 	return com.in.SendMessage(msgb)
 

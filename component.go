@@ -5,22 +5,25 @@ package nodenet
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	log "github.com/golang/glog"
 	gocommon "github.com/liuhengloveyou/go-common"
 )
 
-// 业务处理函数
-type ComponentHandler func(interface{}) (result interface{}, err error)
+// 业务消息处理函数
+type MessageHandler func(interface{}) (result interface{}, err error)
 
 // 组件
 type Component struct {
 	Name  string // 组件名
 	Group string // 组件所属的组
 
-	in      MessageQueue     // 接收消息端点
-	handler ComponentHandler // 业务处理函数
+	in MessageQueue // 接收消息端点
+
+	//每个组件可以处理多种消息
+	handlers map[string]MessageHandler
 }
 
 func NewComponent(name, intype string, inconf interface{}) (*Component, error) {
@@ -32,7 +35,7 @@ func NewComponent(name, intype string, inconf interface{}) (*Component, error) {
 		return nil, fmt.Errorf("Component's type empty")
 	}
 
-	components[sname] = &Component{Name: sname, in: nil, handler: nil}
+	components[sname] = &Component{Name: sname, in: nil, handlers: make(map[string]MessageHandler)}
 
 	var e error
 	components[sname].in, e = NewMQ(intype, inconf)
@@ -40,8 +43,13 @@ func NewComponent(name, intype string, inconf interface{}) (*Component, error) {
 	return components[sname], e
 }
 
-func (p *Component) SetHandler(handler ComponentHandler) {
-	p.handler = handler
+func (p *Component) RegisterHandler(message interface{}, handler MessageHandler) {
+	if reflect.TypeOf(message).Kind() != reflect.Struct {
+		panic("注册消息类型只能是结构体")
+	}
+
+	RegisterMessageType(message)
+	p.handlers[reflect.TypeOf(message).String()] = handler
 }
 
 func (p *Component) Run() error {
@@ -71,20 +79,21 @@ func (p *Component) recvMonitor() {
 
 func (p *Component) dealMsg(msg string) {
 	comsg := &Message{}
-	if e := comsg.Unmarshal([]byte(msg)); e != nil {
+	if e := comsg.Decode([]byte(msg)); e != nil {
 		log.Errorln(p.Name, "msg's format error:", e.Error(), msg)
 		return
 	}
-	log.Infoln(p.Name, "Recv:", comsg)
+	log.Infoln(p.Name, "Recv:", comsg, reflect.TypeOf(comsg.Payload))
 
-	next := comsg.PopGraph()
+	next := comsg.TopGraph()
 	if next == p.Name || next == p.Group {
 		// 调用工作函数
-		if p.handler != nil {
-			rst, e := p.handler(comsg.Payload)
+		if handler, ok := p.handlers[reflect.TypeOf(comsg.Payload).String()]; ok {
+			rst, e := handler(comsg.Payload)
 			if e != nil {
 				log.Errorln(p.Name, "worker error, send to entrance:", msg, e.Error())
 				next = comsg.Entrance
+				comsg.Err = e
 				comsg.Payload = nil
 			} else {
 				log.Infoln(p.Name, "Call handler ok")
@@ -94,19 +103,24 @@ func (p *Component) dealMsg(msg string) {
 
 				comsg.Payload = rst
 			}
+		} else {
+			panic(fmt.Errorf("No handler for message: %s. %v", reflect.TypeOf(comsg.Payload).String(), comsg))
 		}
 
 		next = comsg.PopGraph()
 		if next == "" {
-			log.Infoln("next is nil. send to entrance:", msg)
-			next = comsg.Entrance
+			log.Infoln("next is nil:", comsg)
+			// next = comsg.Entrance
 		}
 	} else if next == "" {
-		log.Infoln("next is empty. send to entrance:", msg)
-		next = comsg.Entrance
+		log.Infoln("next is nil:", comsg)
+		// next = comsg.Entrance
 	}
 
-	if err := SendMsgToComponent(next, comsg); err != nil {
-		log.Errorln(p.Name, "Send to next ERR: ", next, msg)
+	if next != "" {
+		log.Infoln("Send msg to next:", next, comsg)
+		if err := SendMsgToComponent(next, comsg); err != nil {
+			log.Errorln(p.Name, "Send to next ERR: ", next, comsg)
+		}
 	}
 }

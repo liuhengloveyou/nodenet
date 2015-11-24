@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -12,8 +13,8 @@ import (
 )
 
 type MqTcp struct {
-	Url     string        `json:"url"`
-	Timeout time.Duration `json:"timeout"`
+	Url     string `json:"url"`
+	Timeout int64  `json:"timeout"`
 
 	ch   chan string
 	conn net.Conn // 连接到该节点的客户端, 是消息发送方.
@@ -32,22 +33,21 @@ func NewMqTcp(config interface{}) (MessageQueue, error) {
 
 	tmq.ch = make(chan string)
 
-	tmq.Timeout = tmq.Timeout * time.Second
-	if tmq.Timeout == 0 {
-		tmq.Timeout = 30 * time.Second
+	// 心跳间隔至少30秒
+	if tmq.Timeout < 30 {
+		tmq.Timeout = 30
 	}
 
 	return tmq, nil
 }
 
-func (p *MqTcp) config(conf interface{}) error {
-	confJson, e := json.Marshal(conf)
-	if e != nil {
+func (p *MqTcp) config(conf interface{}) (e error) {
+	var confJson []byte
+	if confJson, e = json.Marshal(conf); e != nil {
 		return e
 	}
 
-	e = json.Unmarshal(confJson, p)
-	if e != nil {
+	if e = json.Unmarshal(confJson, p); e != nil {
 		return e
 	}
 
@@ -99,7 +99,7 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 	buff.Write(head[0:])
 	buff.Write(msg)
 
-	p.conn.SetWriteDeadline(time.Now().Add(p.Timeout * time.Second))
+	p.conn.SetWriteDeadline(time.Now().Add(time.Duration(p.Timeout) * time.Second))
 	n, e = p.conn.Write(buff.Bytes())
 	if e != nil {
 		log.Errorln("tcp.Write ERR:", e)
@@ -111,7 +111,7 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 		log.Fatalln("tcp.Write short.")
 	}
 
-	log.Infoln("MqTcp SendMessage: ", p.Url, mlen, string(msg))
+	// log.Infoln("MqTcp SendMessage: ", p.Url, mlen, string(msg))
 
 	return nil
 }
@@ -128,22 +128,17 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 	for {
 	READ:
 		if rn == 0 {
-			conn.SetReadDeadline(time.Now().Add(p.Timeout * time.Second * 2))
+			conn.SetReadDeadline(time.Now().Add(time.Duration(p.Timeout) * time.Second * 2))
 			n, e := conn.Read(buf[rn:])
 			if e != nil {
-				log.Infoln("tcp.Read ERR: ", conn.LocalAddr(), conn.RemoteAddr(), e.Error())
-				conn.Close()
-				conn = nil
-				break
-
-				/*if e == io.EOF {
+				if e == io.EOF {
 					conn.Close()
 					conn = nil
 					break
 				} else if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
-					log.Println("Timeout: ", e.Error())
+					log.Infoln(p.Timeout, e)
 					continue
-				}*/
+				}
 			}
 			rn += n
 		}
@@ -175,7 +170,7 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 				} else if msgLen < 0 {
 					log.Exitln("tcp.Read ERR:", msgLen, string(buf)) // 错误退出
 				} else if (p + 2) > rn /* msgLen == 0 heartbeat */ {
-					rn = 0
+					rn = 0 /* 极小的机率会出问题 */
 					goto READ
 				}
 
@@ -195,7 +190,7 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 			}
 		}
 
-		log.Infoln(p.Url, "msg: ", msgLen, msg.String())
+		// log.Infoln(p.Url, "msg: ", msgLen, msg.String())
 
 		if msgLen == 0 {
 			p.ch <- msg.String()
@@ -208,10 +203,10 @@ func (p *MqTcp) heartbeat() {
 	msg := []byte{0, 0}
 
 	for {
-		time.Sleep(p.Timeout * time.Second)
+		time.Sleep(time.Duration(p.Timeout) * time.Second)
 
 		p.lock.Lock()
-		p.conn.SetWriteDeadline(time.Now().Add(p.Timeout * time.Second))
+		p.conn.SetWriteDeadline(time.Now().Add(time.Duration(p.Timeout) * time.Second))
 		n, e := p.conn.Write(msg)
 		p.lock.Unlock()
 		if e != nil || n != len(msg) {
