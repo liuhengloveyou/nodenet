@@ -19,7 +19,7 @@ type Message struct {
 	DispenseKey string // 均衡分发键
 }
 
-var messageTypes map[string]reflect.Type = make(map[string]reflect.Type)
+var messageTypes map[string]interface{} = make(map[string]interface{})
 
 func NewMessage(id, entrance string, graphs []string, payload interface{}) (msg *Message) {
 	if id == "" {
@@ -42,8 +42,18 @@ func NewMessage(id, entrance string, graphs []string, payload interface{}) (msg 
 	return
 }
 
-func RegisterMessageType(value interface{}) {
-	gob.Register(value)
+func RegisterMessageType(message interface{}) {
+	if reflect.TypeOf(message).Kind() != reflect.Struct {
+		panic("Only struct.")
+	}
+
+	gob.Register(message)
+
+	messageTypes[reflect.TypeOf(message).String()] = message
+}
+
+func GetMessageTypeByName(name string) interface{} {
+	return messageTypes[name]
 }
 
 func (p *Message) SetGraph(graph []string) {

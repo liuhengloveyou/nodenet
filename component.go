@@ -44,11 +44,6 @@ func NewComponent(name, intype string, inconf interface{}) (*Component, error) {
 }
 
 func (p *Component) RegisterHandler(message interface{}, handler MessageHandler) {
-	if reflect.TypeOf(message).Kind() != reflect.Struct {
-		panic("注册消息类型只能是结构体")
-	}
-
-	RegisterMessageType(message)
 	p.handlers[reflect.TypeOf(message).String()] = handler
 }
 
@@ -83,9 +78,10 @@ func (p *Component) dealMsg(msg string) {
 		log.Errorln(p.Name, "msg's format error:", e.Error(), msg)
 		return
 	}
-	log.Infoln(p.Name, "Recv:", comsg, reflect.TypeOf(comsg.Payload))
 
 	next := comsg.TopGraph()
+	log.Infoln(p.Name, "Recv:", comsg, reflect.TypeOf(comsg.Payload), next, p.Name, p.Group)
+
 	if next == p.Name || next == p.Group {
 		// 调用工作函数
 		if handler, ok := p.handlers[reflect.TypeOf(comsg.Payload).String()]; ok {

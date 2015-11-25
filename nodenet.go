@@ -50,11 +50,13 @@ func BuildFromConfig(fileName string) error {
 	for i := 0; i < len(Config.Groups); i++ {
 		l := len(Config.Groups[i].Members)
 		coms := make([]*Component, l)
+
 		for j := 0; j < l; j++ {
 			coms[j] = components[Config.Groups[i].Members[j]]
 			if coms[j] == nil {
 				return fmt.Errorf("No component name's [%s]", Config.Groups[i].Members[j])
 			}
+			coms[j].Group = Config.Groups[i].Name
 		}
 
 		groups[Config.Groups[i].Name] = NewGroup(Config.Groups[i].Name, Config.Groups[i].Dispense, coms)
@@ -62,6 +64,13 @@ func BuildFromConfig(fileName string) error {
 
 	// 图
 	graphs = Config.Graphs
+	for gk, gv := range graphs {
+		for _, name := range gv {
+			if GetComponentByName(name) == nil && GetGroupByName(name) == nil {
+				return fmt.Errorf("No component or group names' [%s] in graph %s", name, gk)
+			}
+		}
+	}
 
 	return nil
 }
@@ -81,7 +90,7 @@ func SendMsgToNext(msg *Message) (err error) {
 
 func SendMsgToComponent(name string, msg *Message) (err error) {
 	var com *Component = nil
-	group := GetGroupComponentByName(name) // 发向一个组吗?
+	group := GetGroupByName(name) // 发向一个组吗?
 	if group == nil {
 		com = components[name]
 	} else {
@@ -97,7 +106,7 @@ func SendMsgToComponent(name string, msg *Message) (err error) {
 
 }
 
-func GetGroupComponentByName(name string) *ComponentGroup {
+func GetGroupByName(name string) *ComponentGroup {
 	if group, ok := groups[name]; ok {
 		return group
 	}
