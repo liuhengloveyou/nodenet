@@ -87,7 +87,7 @@ func (p *Component) dealMsg(msg string) {
 		if handler, ok := p.handlers[reflect.TypeOf(comsg.Payload).String()]; ok {
 			rst, e := handler(comsg.Payload)
 			if e != nil {
-				log.Errorln(p.Name, "worker error, send to entrance:", msg, e.Error())
+				log.Errorln(p.Name, "worker error, send to entrance:", e.Error(), msg)
 				next = comsg.Entrance
 				comsg.Err = e
 				comsg.Payload = nil

@@ -19,6 +19,8 @@ type MqTcp struct {
 	ch   chan string
 	conn net.Conn // 连接到该节点的客户端, 是消息发送方.
 	lock sync.Mutex
+
+	hb int32 // 是否已经启动心跳
 }
 
 func init() {
@@ -88,7 +90,10 @@ func (p *MqTcp) SendMessage(msg []byte) (e error) {
 			return
 		}
 
-		go p.heartbeat()
+		if p.hb == 0 {
+			p.hb++
+			go p.heartbeat()
+		}
 	}
 
 	n, mlen := 0, len(msg)
@@ -205,15 +210,18 @@ func (p *MqTcp) heartbeat() {
 	for {
 		time.Sleep(time.Duration(p.Timeout) * time.Second)
 
-		p.lock.Lock()
-		p.conn.SetWriteDeadline(time.Now().Add(time.Duration(p.Timeout) * time.Second))
-		n, e := p.conn.Write(msg)
-		p.lock.Unlock()
-		if e != nil || n != len(msg) {
-			log.Errorln("heartbeat ERR:", n, e.Error())
-			p.conn.Close()
-			p.conn = nil
-			break
+		if p.conn != nil {
+			p.lock.Lock()
+			p.conn.SetWriteDeadline(time.Now().Add(time.Duration(p.Timeout) * time.Second))
+			n, e := p.conn.Write(msg)
+			if e != nil || n != len(msg) {
+				log.Errorln("heartbeat ERR:", n, e.Error())
+				p.conn.Close()
+				p.conn = nil
+			}
+			p.lock.Unlock()
 		}
 	}
+
+	p.hb--
 }
