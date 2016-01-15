@@ -12,6 +12,12 @@ type Worker struct {
 
 var workers map[string]*Worker = make(map[string]*Worker)
 
+/*
+ * 注册worker到nodenet系统中
+ * name: worker名
+ * message: worker可处理的消息类型
+ * worker: worker函数
+ */
 func RegisterWorker(name string, message interface{}, worker MessageHandler) {
 	if w, ok := workers[name]; ok {
 		panic(fmt.Errorf("registering duplicate worker for: %s. %v => %v", name, w, worker))

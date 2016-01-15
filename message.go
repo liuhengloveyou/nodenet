@@ -42,6 +42,9 @@ func NewMessage(id, entrance string, graphs []string, payload interface{}) (msg 
 	return
 }
 
+/*
+ * 注册业务系统消息类型到nodenet系统中
+ */
 func RegisterMessageType(message interface{}) {
 	if reflect.TypeOf(message).Kind() != reflect.Struct {
 		panic("Only struct.")
