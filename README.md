@@ -209,7 +209,7 @@
 		
 	g := nodenet.GetGraphByName(common.LOGIC_STATE) //图
 	
-	msg := nodenet.NewMessage(common.GID.ID(),NodeName,g,msg) // 消息
+	cMsg := nodenet.NewMessage(common.GID.ID(),NodeName,g,msg) // 消息
 	cMsg.DispenseKey = user.Userid //分发策略键
 
 	// 发送
