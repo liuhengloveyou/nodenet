@@ -174,7 +174,7 @@
 				}
 
 				for k, v := range common.LogicConf.Nodes[i].Works {
-					t, w := nodenet.GetMessageTypeByName(k), 					nodenet.GetWorkerByName(v)
+					t, w := nodenet.GetMessageTypeByName(k),nodenet.GetWorkerByName(v)
 					if t == nil {
 						return fmt.Errorf("No message registerd: %s", k)
 					}
