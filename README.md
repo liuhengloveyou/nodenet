@@ -195,3 +195,25 @@
 
 
 是不是很方便省事？:)
+
+
+呃。。。忘了要发消息：
+
+	... ...
+	
+	msg := &common.MessageLogin{
+		Userid: user.Userid,
+		ClientType: user.Client,
+		AccessName: common.AccessConf.NodeName,
+		AccessSession: sess.Id("")} // 业务系统消息
+		
+	g := nodenet.GetGraphByName(common.LOGIC_STATE) //图
+	
+	msg := nodenet.NewMessage(common.GID.ID(),NodeName,g,msg) // 消息
+	cMsg.DispenseKey = user.Userid //分发策略键
+
+	// 发送
+	if e = nodenet.SendMsgToNext(cMsg); e != nil {
+		log.Errorln("SendMsgToNext ERR:", e.Error())
+		... ...
+	}
