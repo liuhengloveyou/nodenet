@@ -102,7 +102,12 @@ func SendMsgToComponent(name string, msg *Message) (err error) {
 
 	msgb := msg.Encode()
 
-	return com.in.SendMessage(msgb)
+	retry := 2 // 失败重试一次
+	for err = com.in.SendMessage(msgb); retry > 0 && err != nil; retry -= 1 {
+		// retry
+	}
+
+	return
 
 }
 

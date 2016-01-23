@@ -141,7 +141,7 @@ func (p *MqTcp) handleConnection(conn net.Conn) {
 					conn = nil
 					break
 				} else if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
-					log.Infoln(p.Timeout, e)
+					//log.Infoln(p.Timeout, e)
 					continue
 				}
 			}
