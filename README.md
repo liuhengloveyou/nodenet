@@ -124,7 +124,7 @@
 			
 3. 配置服务进程要启动的组件
 
-	参考[XIM状辑服务配置](https://github.com/liuhengloveyou/xim/blob/master/example/logic.conf.simple)
+	参考[XIM状态服务配置](https://github.com/liuhengloveyou/xim/blob/master/example/logic.conf.simple)
 	
 		{
 		... ...
@@ -196,8 +196,7 @@
 
 是不是很方便省事？:)
 
-
-呃。。。忘了要发消息：
+发消息：
 
 	... ...
 	
